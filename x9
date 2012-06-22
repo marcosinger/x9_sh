@@ -1,0 +1,82 @@
+#!/bin/zsh
+
+CONFIG_FILE="/Users/$USERNAME/.x9conf"
+
+function update_project(){
+  changes_to_commit=`git status -s`
+  if [ -z "$changes_to_commit" ]
+  then
+    echo "Baixando atualizações.."
+    git pull > /dev/null 2>&1
+  else
+    delegate_to_user $1 $changes_to_commit
+    update_project $1
+  fi
+}
+
+function delegate_to_user(){
+  echo "Temos os seguintes arquivos não commitados no $1:"
+  echo $2
+  execute_commands
+}
+
+function execute_commands(){
+  read user_command
+
+  case $user_command in
+  vai)
+    ;;
+  *)
+    eval $user_command
+    execute_commands
+  esac
+}
+
+
+function read_config_file(){
+  if [ -r $CONFIG_FILE ]; then
+    . $CONFIG_FILE
+  else
+    echo "Arquivo de config não encontrado. Vamos criar um!"
+    echo "Diretório dos projetos: (Ex.: /Users/x9/codes)"
+    read workspace
+
+    echo workspace="$workspace" > $CONFIG_FILE
+  fi
+}
+
+function init(){
+  for p in ${projects[@]}; do
+    cd "$workspace/$p"
+    logs=`git log --since=$since --graph --pretty=format:'%C(yellow)%h%C(cyan)%Creset %s %C(white)- %an, %ar%Creset'`
+
+    printf "%0s[ $(echo -en "\033[1;32m")$p$(echo -en "\033[0m") ]"
+    printf "%1s[ $(echo -en "\033[1;33m")$since$(echo -en "\033[0m") ]\n"
+
+    update_project $p
+
+    if [ -z "$logs" ]
+    then
+      printf "%1s $(echo -en "\033[0;31m")Nenhum commit desde '$since'.$(echo -en "\033[0m")\n\n"
+    else
+      printf "$logs \n\n"
+    fi
+  done
+}
+
+since="yesterday"
+projects=(webdesk webdesk-provisioner webdesk-product-api webchat webchat-provisioner webchat-product-api
+          pabx-virtual-2011 pabx-provisioner pabx-product-api ruby_pabx_core feed_consumer package_pipeline product-apify saas_plan_config x9)
+
+if [ $# -eq 1 ]; then
+  projects=$1
+fi
+
+if [ $# -gt 1 ]; then
+  echo "Somente um projeto por vez é aceito."
+  exit 0
+fi
+
+read_config_file
+init
+
