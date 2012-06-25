@@ -1,0 +1,8 @@
+h1. X9-SH
+
+
+h2. Installing
+
+You can install this via the command line with `curl`.
+
+@curl -L https://github.com/marcosinger/x9_sh/raw/master/install.sh | sh@
